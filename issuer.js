@@ -290,7 +290,7 @@ const sendOffer = async function (req, res) {
     const resp = await fetch(file)
     let qrUrl = await resp.json()
     // inject OpenID Federation Entity Configuration location
-    qrUrl += \`&openid_federation=\${encodeURIComponent('https://issuer.procivis.pensiondemo.findy.fi')}\`
+    // qrUrl += \`&openid_federation=\${encodeURIComponent('https://issuer.procivis.pensiondemo.findy.fi')}\`
     console.log(qrUrl)
     const canvas = document.getElementById("qrcode")
     const qr = QRCode.QRCodeBrowser(canvas)
