@@ -114,7 +114,11 @@ async function initDid() {
 
 async function initCredentialSchema() {
   const headers = apiHeaders
-  const listUrl =  `${config.api_base}/credential-schema/v1?name=${encodeURIComponent(credentialSchema.name)}`
+  const queryParams = new URLSearchParams({
+    name: credentialSchema.name,
+    format: credentialSchema.format
+  })
+  const listUrl =  `${config.api_base}/credential-schema/v1?${queryParams.toString()}`
   const resp = await fetch(listUrl, { headers })
   if (resp.status != 200) {
     console.error(resp.status, listUrl, headers)
