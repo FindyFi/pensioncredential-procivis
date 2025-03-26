@@ -32,7 +32,7 @@ async function getOffer(path) {
   // console.log(JSON.stringify(credentialParams, null, 2))
   const body = JSON.stringify(credentialParams)
   const resp = await fetch(createUrl, { method: 'POST', headers, body })
-  if (resp.status != 201) {
+  if (!resp.ok) {
     console.log(resp.status, createUrl, headers, body)
     throw new Error(JSON.stringify(await resp.json(), null, 2))
   }
@@ -41,7 +41,7 @@ async function getOffer(path) {
   if (cred.id) {
     const issueUrl = `${config.api_base}/credential/v1/${cred.id}/share`
     const issueResp = await fetch(issueUrl, { method: 'POST', headers })
-    if (issueResp.status != 201) {
+    if (!issueResp.ok) {
       console.log(issueResp.status, issueUrl, headers)
       throw new Error(JSON.stringify(await issueResp.json(), null, 2))
     }

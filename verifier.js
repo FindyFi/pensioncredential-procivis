@@ -229,7 +229,7 @@ async function getStatus(id) {
   const statusUrl =  `${config.api_base}/proof-request/v1/${id}`
   const resp = await fetch(statusUrl, { headers })
   // console.log(statusUrl, resp.status)
-  if (resp.status != 200) {
+  if (!resp.ok) {
     console.error(JSON.stringify(await resp.text(), null, 1))
     return false
   }

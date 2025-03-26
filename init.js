@@ -54,7 +54,7 @@ async function initKey() {
       storageParams: {}
     })
     const createResp = await fetch(createUrl, { method: 'POST', headers, body })
-    if (createResp.status != 201) {
+    if (!createResp.ok) {
       console.error(createResp.status, createUrl, headers, body)
       console.log(await createResp.text())
       return false
@@ -70,7 +70,7 @@ async function initDid() {
   const headers = apiHeaders
   const listUrl =  `${config.api_base}/did/v1?name=${encodeURIComponent(credentialSchema.name)}`
   const resp = await fetch(listUrl, { headers })
-  if (resp.status != 200) {
+  if (!resp.ok) {
     console.error(resp.status, listUrl, headers)
     console.log(await resp.text())
     return false
@@ -80,7 +80,7 @@ async function initDid() {
   if (id) {
     const getUrl = `${config.api_base}/did/v1/${id}`
     const getResp = await fetch(getUrl, { headers })
-    if (getResp.status == 200) {
+    if (getResp.ok) {
       const getJson = await getResp.json()
       // console.log(getJson)
       return getJson.id
@@ -100,7 +100,7 @@ async function initDid() {
       }
     })
     const createResp = await fetch(createUrl, { method: 'POST', headers, body })
-    if (createResp.status != 201) {
+    if (!createResp.ok) {
       console.error(createResp.status, createUrl, headers, body)
       console.log(await createResp.text())
       return false
@@ -120,7 +120,7 @@ async function initCredentialSchema() {
   })
   const listUrl =  `${config.api_base}/credential-schema/v1?${queryParams.toString()}`
   const resp = await fetch(listUrl, { headers })
-  if (resp.status != 200) {
+  if (!resp.ok) {
     console.error(resp.status, listUrl, headers)
     console.log(await resp.text())
     return false
@@ -130,7 +130,7 @@ async function initCredentialSchema() {
   if (id) {
     const getUrl = `${config.api_base}/credential-schema/v1/${id}`
     const getResp = await fetch(getUrl, { headers })
-    if (getResp.status == 200) {
+    if (getResp.ok) {
       const getJson = await getResp.json()
       // console.log(getJson)
       return getJson
@@ -140,7 +140,7 @@ async function initCredentialSchema() {
     const createUrl =  `${config.api_base}/credential-schema/v1`
     const body = JSON.stringify(credentialSchema)
     const createResp = await fetch(createUrl, { method: 'POST', headers, body })
-    if (createResp.status != 201) {
+    if (!createResp.ok) {
       console.error(createResp.status, createUrl, headers, body)
       console.log(await createResp.text())
       return false
@@ -157,7 +157,7 @@ async function initProofSchema() {
   const listUrl =  `${config.api_base}/proof-schema/v1?name=${encodeURIComponent(credentialSchema.name)}`
   // const listUrl =  `${config.api_base}/proof-schema/v1`
   const resp = await fetch(listUrl, { headers })
-  if (resp.status != 200) {
+  if (!resp.ok) {
     console.error(resp.status, listUrl, headers)
     console.log(await resp.text())
     return false
@@ -168,7 +168,7 @@ async function initProofSchema() {
   if (id) {
     const getUrl = `${config.api_base}/proof-schema/v1/${id}`
     const getResp = await fetch(getUrl, { headers })
-    if (getResp.status == 200) {
+    if (getResp.ok) {
       const getJson = await getResp.json()
       // console.log(getJson)
       return getJson
@@ -218,7 +218,7 @@ async function initProofSchema() {
     })
     const body = JSON.stringify(proofSchema)
     const createResp = await fetch(createUrl, { method: 'POST', headers, body })
-    if (createResp.status != 201) {
+    if (!createResp.ok) {
       console.error(createResp.status, createUrl, headers, body)
       console.log(await createResp.text())
       return false
