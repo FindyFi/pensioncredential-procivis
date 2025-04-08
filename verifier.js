@@ -15,7 +15,7 @@ async function createRequest() {
   }
   const body = JSON.stringify(proofParams)
   const resp = await fetch(createUrl, { method: 'POST', headers, body })
-  if (resp.status != 201) {
+  if (!resp.ok) {
     console.error(resp.status, createUrl, headers)
     console.log(await resp.text())
     return false
@@ -25,7 +25,7 @@ async function createRequest() {
   if (json.id) {
     const requestUrl = `${config.api_base}/proof-request/v1/${json.id}/share`
     const requestResp = await fetch(requestUrl, { method: 'POST', headers })
-    if (requestResp.status != 200) { // NOTE: 
+    if (!requestResp.ok) {
       console.log(requestResp.status, requestUrl, headers)
       throw new Error(JSON.stringify(await requestResp.json(), null, 2))
     }
