@@ -1,17 +1,15 @@
 import { createServer } from 'node:http'
-import { config, apiHeaders, key, did, schemas } from './init.js'
+import { config, api, key, did, schemas } from './init.js'
 
 const VALIDITY_MS = 3 * 365 * 24 * 60 * 60 * 1000 // credential validity time in milliseconds
 
 async function getOffer(path) {
   const { default: credential } = await import('.' + path, { with: { type: "json" } });
-  const headers = apiHeaders
-  const createUrl = `${config.api_base}/credential/v1`
   const credentialParams = {
     credentialSchemaId: schemas.credential.id,
     issuerDid: did,
     issuerKey: key,
-    exchange: 'OPENID4VC',
+    exchange: 'OPENID4VCI_DRAFT13',
     claimValues: []
   }
   schemas.credential.claims.forEach(parent => {
@@ -30,22 +28,10 @@ async function getOffer(path) {
     })
   })
   // console.log(JSON.stringify(credentialParams, null, 2))
-  const body = JSON.stringify(credentialParams)
-  const resp = await fetch(createUrl, { method: 'POST', headers, body })
-  if (!resp.ok) {
-    console.log(resp.status, createUrl, headers, body)
-    throw new Error(JSON.stringify(await resp.json(), null, 2))
-  }
-  const cred = await resp.json()
-  // console.log(cred)
+  const cred = await api('POST', '/credential/v1', credentialParams)
+  console.log(cred)
   if (cred.id) {
-    const issueUrl = `${config.api_base}/credential/v1/${cred.id}/share`
-    const issueResp = await fetch(issueUrl, { method: 'POST', headers })
-    if (!issueResp.ok) {
-      console.log(issueResp.status, issueUrl, headers)
-      throw new Error(JSON.stringify(await issueResp.json(), null, 2))
-    }
-    const offer = await issueResp.json()
+    const offer = await api('POST', `/credential/v1/${cred.id}/share`)
     console.log(offer)
     return offer.url
   }

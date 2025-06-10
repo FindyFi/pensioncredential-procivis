@@ -1,35 +1,19 @@
 import QRCode from 'qrcode'
 import { createServer } from 'node:http'
-import { config, apiHeaders, key, did, schemas } from './init.js'
+import { config, api, did, schemas } from './init.js'
 
 const states = {}
 const pollingInterval = 3 // seconds
 
 async function createRequest() {
-  const headers = apiHeaders
-  const createUrl =  `${config.api_base}/proof-request/v1`
   const proofParams = {
     proofSchemaId: schemas.proof.id,
     verifierDid: did,
-    exchange: 'OPENID4VC'
+    exchange: 'OPENID4VP_DRAFT25'
   }
-  const body = JSON.stringify(proofParams)
-  const resp = await fetch(createUrl, { method: 'POST', headers, body })
-  if (!resp.ok) {
-    console.error(resp.status, createUrl, headers)
-    console.log(await resp.text())
-    return false
-  }
-  const json = await resp.json()
-  // console.log(json)
+  const json = await api('POST', '/proof-request/v1', proofParams)
   if (json.id) {
-    const requestUrl = `${config.api_base}/proof-request/v1/${json.id}/share`
-    const requestResp = await fetch(requestUrl, { method: 'POST', headers })
-    if (!requestResp.ok) {
-      console.log(requestResp.status, requestUrl, headers)
-      throw new Error(JSON.stringify(await requestResp.json(), null, 2))
-    }
-    const request = await requestResp.json()
+    const request = await api('POST', `/proof-request/v1/${json.id}/share`)
     console.log(request)
     return {id: json.id, url: request.url}
   }
@@ -225,15 +209,7 @@ async function showRequest(res) {
 }
 
 async function getStatus(id) {
-  const headers = apiHeaders
-  const statusUrl =  `${config.api_base}/proof-request/v1/${id}`
-  const resp = await fetch(statusUrl, { headers })
-  // console.log(statusUrl, resp.status)
-  if (!resp.ok) {
-    console.error(JSON.stringify(await resp.text(), null, 1))
-    return false
-  }
-  const verificationStatus = await resp.json()
+  const verificationStatus = await api('GET', `/proof-request/v1/${id}`)
   // console.log(statusUrl, resp.status, JSON.stringify(verificationStatus, null, 1))
   return verificationStatus
 }

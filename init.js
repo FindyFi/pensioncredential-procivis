@@ -14,81 +14,84 @@ const apiHeaders = {
   'Authorization': `Bearer ${authData.token}`,
   'Content-Type': 'application/json'
 }
+let org
 
+// let cfg = await api('GET', '/config/v1')
+// console.log('Config: ', JSON.stringify(cfg, null, 1))
+
+org = await initOrg()
 const key = await initKey()
 const did = await initDid()
 const schemas = {}
 schemas.credential = await initCredentialSchema()
 schemas.proof = await initProofSchema()
 
-export { config, apiHeaders, key, did, schemas }
+export { config, api, key, did, schemas }
 
-async function initKey() {
+async function api(method, path, body={}) {
+  let url = `${config.api_base}${path}`
   const headers = apiHeaders
-  const listUrl =  `${config.api_base}/key/v1?name=${encodeURIComponent(credentialSchema.name)}`
-  const resp = await fetch(listUrl, { headers })
-  if (resp.status != 200) {
-    console.error(resp.status, listUrl, headers)
+  const options = { method, headers }
+  if (org) {
+    body.organisationId = body.organisationId || org?.at(0).id
+  }
+  if (method == 'POST') {
+    options.body = JSON.stringify(body)
+  }
+  else {
+    body.page = body.page !== undefined ? body.page: 0
+    body.pageSize = body.pageSize !== undefined ? body.pageSize: 20
+    const queryParams = new URLSearchParams(body)
+    url = `${url}?${queryParams.toString()}`
+  }
+  const resp = await fetch(url, options)
+  // console.log(resp.status, method, url, headers, JSON.stringify(body, null, 1))
+  if (!resp.ok) {
+    console.error(resp.status, method, url, headers, JSON.stringify(body, null, 1))
     console.log(await resp.text())
     return false
   }
-  const results = await resp.json()
-  // console.log(results)
-  const id = results?.values?.at(0)?.id // use the first returned
+  const data = await resp.json()
+  // console.log('Response: ', JSON.stringify(data, null, 1))
+  return data
+}
+
+async function initOrg() {
+  return await api('GET', '/organisation/v1')
+}
+
+async function initKey() {
+  const headers = apiHeaders
+  const list = await api('GET', '/key/v1', { name: credentialSchema.name})
+  const id = list?.values?.at(0)?.id // use the first returned
+  let key = {}
   if (id) {
-    const getUrl = `${config.api_base}/key/v1/${id}`
-    const getResp = await fetch(getUrl, { headers })
-    if (getResp.status == 200) {
-      const getJson = await getResp.json()
-      // console.log(getJson)
-      return getJson.id
-    }
+    // key = await api('GET', `/key/v1/${id}`)
+    key = list?.values?.at(0)
   }
   else {
-    const createUrl =  `${config.api_base}/key/v1`
-    const body = JSON.stringify({
-      keyType: 'ES256',
+    const body = {
+      keyType: 'ECDSA',
       keyParams: {},
       name: credentialSchema.name,
       storageType: 'INTERNAL',
       storageParams: {}
-    })
-    const createResp = await fetch(createUrl, { method: 'POST', headers, body })
-    if (!createResp.ok) {
-      console.error(createResp.status, createUrl, headers, body)
-      console.log(await createResp.text())
-      return false
     }
-    const createJson = await createResp.json()
-    console.log(`Created new key ${createJson.id}`)
-    // console.log(createJson)
-    return createJson.id    
+    key = await api('POST', '/key/v1', body)
+    console.log(key)
   }
+  return key?.id
 }
 
 async function initDid() {
-  const headers = apiHeaders
-  const listUrl =  `${config.api_base}/did/v1?name=${encodeURIComponent(credentialSchema.name)}`
-  const resp = await fetch(listUrl, { headers })
-  if (!resp.ok) {
-    console.error(resp.status, listUrl, headers)
-    console.log(await resp.text())
-    return false
-  }
-  const results = await resp.json()
-  const id = results?.values?.at(0)?.id // use the first returned
+  const list = await api('GET', '/did/v1', { name: credentialSchema.name })
+  const id = list?.values?.at(0)?.id // use the first returned
+  let did = {}
   if (id) {
-    const getUrl = `${config.api_base}/did/v1/${id}`
-    const getResp = await fetch(getUrl, { headers })
-    if (getResp.ok) {
-      const getJson = await getResp.json()
-      // console.log(getJson)
-      return getJson.id
-    }
+    did = await api('GET', `/did/v1/${id}`)
   }
   else {
-    const createUrl =  `${config.api_base}/did/v1`
-    const body = JSON.stringify({
+    const body = {
       method: 'WEB',
       name: credentialSchema.name,
       keys: {
@@ -98,84 +101,34 @@ async function initDid() {
         capabilityInvocation: [key],
         capabilityDelegation: [key]
       }
-    })
-    const createResp = await fetch(createUrl, { method: 'POST', headers, body })
-    if (!createResp.ok) {
-      console.error(createResp.status, createUrl, headers, body)
-      console.log(await createResp.text())
-      return false
     }
-    const createJson = await createResp.json()
-    console.log(`Created new did ${createJson.id}`)
-    // console.log(createJson)
-    return createJson.id
+    did = await api('POST', '/did/v1', body)
   }
+  return did?.id
 }
 
 async function initCredentialSchema() {
-  const headers = apiHeaders
-  const queryParams = new URLSearchParams({
-    name: credentialSchema.name,
-    format: credentialSchema.format
-  })
-  const listUrl =  `${config.api_base}/credential-schema/v1?${queryParams.toString()}`
-  const resp = await fetch(listUrl, { headers })
-  if (!resp.ok) {
-    console.error(resp.status, listUrl, headers)
-    console.log(await resp.text())
-    return false
-  }
-  const results = await resp.json()
-  const id = results?.values?.at(0)?.id // use the first returned
+  const list = await api('GET', '/credential-schema/v1', { name: credentialSchema.name, format: credentialSchema.format })
+  // const list = await api('GET', '/credential-schema/v1', {})
+  const id = list?.values?.at(0)?.id // use the first returned
+  let schema = {}
   if (id) {
-    const getUrl = `${config.api_base}/credential-schema/v1/${id}`
-    const getResp = await fetch(getUrl, { headers })
-    if (getResp.ok) {
-      const getJson = await getResp.json()
-      // console.log(getJson)
-      return getJson
-    }
+    schema = await api('GET', `/credential-schema/v1/${id}`)
   }
   else {
-    const createUrl =  `${config.api_base}/credential-schema/v1`
-    const body = JSON.stringify(credentialSchema)
-    const createResp = await fetch(createUrl, { method: 'POST', headers, body })
-    if (!createResp.ok) {
-      console.error(createResp.status, createUrl, headers, body)
-      console.log(await createResp.text())
-      return false
-    }
-    const createJson = await createResp.json()
-    console.log(`Created new credential schema ${createJson.id}`)
-    // console.log(createJson)
-    return createJson
+    schema = await api('POST', '/credential-schema/v1', credentialSchema)
   }
+  return schema
 }
 
 async function initProofSchema() {
-  const headers = apiHeaders
-  const listUrl =  `${config.api_base}/proof-schema/v1?name=${encodeURIComponent(credentialSchema.name)}`
-  // const listUrl =  `${config.api_base}/proof-schema/v1`
-  const resp = await fetch(listUrl, { headers })
-  if (!resp.ok) {
-    console.error(resp.status, listUrl, headers)
-    console.log(await resp.text())
-    return false
-  }
-  const results = await resp.json()
-  // console.log(JSON.stringify(results, null, 1))
-  const id = results?.values?.at(0)?.id // use the first returned
-  if (id) {
-    const getUrl = `${config.api_base}/proof-schema/v1/${id}`
-    const getResp = await fetch(getUrl, { headers })
-    if (getResp.ok) {
-      const getJson = await getResp.json()
-      // console.log(getJson)
-      return getJson
-    }
+  const list = await api('GET', '/proof-schema/v1', { name: schemas.credential.name })
+  const pid = list?.values?.at(0)?.id // use the first returned
+  let schema = {}
+  if (pid) {
+    schema = await api('GET', `/proof-schema/v1/${pid}`)
   }
   else {
-    const createUrl =  `${config.api_base}/proof-schema/v1`
     const cs = schemas.credential
     const proofSchema = {
       name: cs.name,
@@ -197,9 +150,6 @@ async function initProofSchema() {
               required: true
             })
           }
-          else {
-            console.warn(child.key)
-          }
         })
       }
       if (parent.key == 'Person') {
@@ -210,22 +160,10 @@ async function initProofSchema() {
               required: true
             })
           }
-          else {
-            console.warn(child.key)
-          }
         })
       }
     })
-    const body = JSON.stringify(proofSchema)
-    const createResp = await fetch(createUrl, { method: 'POST', headers, body })
-    if (!createResp.ok) {
-      console.error(createResp.status, createUrl, headers, body)
-      console.log(await createResp.text())
-      return false
-    }
-    const createJson = await createResp.json()
-    console.log(`Created new proof schema ${createJson.id}`)
-    // console.log(createJson)
-    return createJson
+    schema = await api('POST', '/proof-schema/v1', proofSchema)
   }
+  return schema
 }

@@ -6,6 +6,10 @@ myHeaders.append("Content-Type", "application/json");
 myHeaders.append("Accept", "application/json");
 
 async function login() {
+  myHeaders.append("Authorization", `Bearer ${config.api_token}`)
+  return {
+    token: config.api_token,
+  }
   const authOptions = {
     method: "POST",
     headers: myHeaders,
