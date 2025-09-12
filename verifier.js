@@ -9,7 +9,7 @@ async function createRequest() {
   const proofParams = {
     proofSchemaId: schemas.proof.id,
     verifierDid: did,
-    exchange: 'OPENID4VP_DRAFT25'
+    protocol: 'OPENID4VP_DRAFT25'
   }
   const json = await api('POST', '/proof-request/v1', proofParams)
   if (json.id) {
