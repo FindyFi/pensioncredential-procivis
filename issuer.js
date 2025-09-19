@@ -59,7 +59,7 @@ const sendOffer = async function (req, res) {
       console.error(e)
       res.setHeader("Content-Type", "text/plain")
       res.writeHead(404)
-      res.end(`${path} not found!`)
+      res.end(`Could not generate credential offer for ${path}!`)
       return false  
     }
   }
@@ -274,6 +274,10 @@ const sendOffer = async function (req, res) {
     user.textContent = this[this.selectedIndex].textContent
 
     const resp = await fetch(file)
+    if (!resp.ok) {
+      o.textContent = await resp.text()
+      return false
+    }
     let qrUrl = await resp.json()
     // inject OpenID Federation Entity Configuration location
     // qrUrl += \`&openid_federation=\${encodeURIComponent('https://issuer.procivis.pensiondemo.findy.fi')}\`
