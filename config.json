@@ -1,6 +1,8 @@
 {
-    "api_base": "https://procivis.sandbox.findy.fi/api",
-    "api_token": "<YOUR ACCESS TOKEN HERE>",
+    "api_base": "https://api.trial.procivis-one.com/api",
+    "token_endpoint": "https://keycloak.trial.procivis-one.com/realms/trial/protocol/openid-connect/token",
+    "client_id": "<client_id>",
+    "client_secret": "<client secret>",
     "server_host": "localhost",
     "issuer_port": 3080,
     "verifier_port": 3081
