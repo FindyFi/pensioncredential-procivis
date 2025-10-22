@@ -11,7 +11,7 @@ for (const param in config) {
 
 const apiHeaders = {
   'Accept': 'application/json',
-  'Authorization': `Bearer ${authData.token}`,
+  'Authorization': `Bearer ${authData.access_token}`,
   'Content-Type': 'application/json'
 }
 let org
