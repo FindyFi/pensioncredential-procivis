@@ -23,6 +23,7 @@ org = await initOrg()
 const key = await initKey()
 const did = await initDid()
 const schemas = {}
+// await clearSchemas()
 schemas.credential = await initCredentialSchema()
 schemas.proof = await initProofSchema()
 
@@ -51,7 +52,13 @@ async function api(method, path, body={}) {
     console.log(await resp.text())
     return false
   }
-  const data = await resp.json()
+  let data
+  if (resp.headers.get('Content-Type')?.includes('application/json')) {
+    data = await resp.json()
+  }
+  else {
+    data = await resp.text()
+  }
   // console.log('Response: ', JSON.stringify(data, null, 1))
   return data
 }
@@ -78,7 +85,7 @@ async function initKey() {
       storageParams: {}
     }
     key = await api('POST', '/key/v1', body)
-    console.log(key)
+    console.log('New key: ', key)
   }
   return key?.id
 }
@@ -107,16 +114,27 @@ async function initDid() {
   return did?.id
 }
 
+async function clearSchemas() {
+  let list = await api('GET', '/credential-schema/v1', {})
+  for (const item of list?.values || []) {
+    await api('DELETE', `/credential-schema/v1/${item.id}`)
+  }
+  list = await api('GET', '/proof-schema/v1', {})
+  for (const item of list?.values || []) {
+    await api('DELETE', `/proof-schema/v1/${item.id}`)
+  }
+}
+
 async function initCredentialSchema() {
   const list = await api('GET', '/credential-schema/v1', { name: credentialSchema.name, format: credentialSchema.format })
-  // const list = await api('GET', '/credential-schema/v1', {})
   const id = list?.values?.at(0)?.id // use the first returned
   let schema = {}
   if (id) {
     schema = await api('GET', `/credential-schema/v1/${id}`)
   }
   else {
-    schema = await api('POST', '/credential-schema/v1', credentialSchema)
+    const res = await api('POST', '/credential-schema/v1', credentialSchema)
+    schema = await api('GET', `/credential-schema/v1/${res.id}`)
   }
   return schema
 }
