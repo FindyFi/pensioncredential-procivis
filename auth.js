@@ -35,7 +35,7 @@ async function login() {
   myHeaders.append("Authorization", `Bearer ${token}`)
   const exp = json?.expires_in
   if (exp) {
-    const ttl = Math.min(new Date().getTime() + exp * 1000, MAX_TTL)
+    const ttl = Math.min(new Date().getTime() + exp, MAX_TTL)
     console.log(`Refreshing token in ${ttl/1000/3600} hours.`)
     if (exp) {
       setTimeout(authRefresh, ttl)
@@ -70,7 +70,7 @@ async function authRefresh() {
   myHeaders.set("Authorization", `Bearer ${token}`)
   const exp = json?.expires_in
   if (exp) {
-    const ttl = Math.min(new Date().getTime() + exp * 1000, MAX_TTL)
+    const ttl = Math.min(new Date().getTime() + exp, MAX_TTL)
     if (exp) {
       setTimeout(authRefresh, ttl)
     }
