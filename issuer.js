@@ -46,7 +46,7 @@ const sendOffer = async function (req, res) {
     res.end(config.issuer_entity_configuration)
     return false
   }
-  else if (path.includes('.json')) {
+  else if (path.match(/pension.*json/)) {
     try {
       const offer = await getOffer(path)
       // console.log(offer)
@@ -56,22 +56,29 @@ const sendOffer = async function (req, res) {
       return false
     }
     catch(e) {
-      console.error(e)
+      console.warn(e)
       res.setHeader("Content-Type", "text/plain")
       res.writeHead(404)
       res.end(`Could not generate credential offer for ${path}!`)
       return false  
     }
   }
-  else if (path !== '/') {
+  if (req.url.match(/^\/(\?.*)?$/)) {
+    res.setHeader("Content-Type", "text/html")
+    res.writeHead(200)
+    res.end(displayOffer())
+  }
+  else {
+    console.warn('Not found:', req.url)
     res.setHeader("Content-Type", "text/plain")
     res.writeHead(404)
     res.end(`Not Found`)
     return false
   }
-  res.setHeader("Content-Type", "text/html")
-  res.writeHead(200)
-  res.end(`<!DOCTYPE html>
+}
+
+function displayOffer() {
+  return `<!DOCTYPE html>
 <html lang="en">
  <meta charset="UTF-8">
  <title>Procivis myöntää eläketodisteen</title>
@@ -249,7 +256,7 @@ const sendOffer = async function (req, res) {
    }
   </script>
  </body>
-</html>`)
+</html>`
 }
 
 const server = createServer(sendOffer)
