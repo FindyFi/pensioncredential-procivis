@@ -13,7 +13,12 @@ async function createRequest() {
   }
   const json = await api('POST', '/proof-request/v1', proofParams)
   if (json.id) {
-    const request = await api('POST', `/proof-request/v1/${json.id}/share`)
+    const shareParams = {
+      params: {
+        clientIdScheme: "redirect_uri"
+      }
+    }
+    const request = await api('POST', `/proof-request/v1/${json.id}/share`, shareParams)
     console.log(request)
     return {id: json.id, url: request.url}
   }
