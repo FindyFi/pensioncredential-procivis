@@ -50,9 +50,9 @@ const sendOffer = async function (req, res) {
     try {
       const offer = await getOffer(path)
       // console.log(offer)
-      res.setHeader("Content-Type", "application/json")
+      res.setHeader("Content-Type", "text/plain")
       res.writeHead(200)
-      res.end(JSON.stringify(offer))
+      res.end(offer)
       return false
     }
     catch(e) {
@@ -234,7 +234,7 @@ function displayOffer() {
       o.textContent = await resp.text()
       return false
     }
-    let qrUrl = await resp.json()
+    let qrUrl = await resp.text()
     // inject OpenID Federation Entity Configuration location
     // qrUrl += \`&openid_federation=\${encodeURIComponent('https://issuer.procivis.pensiondemo.findy.fi')}\`
     console.log(qrUrl)
