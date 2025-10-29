@@ -11,7 +11,7 @@ async function login() {
   if (config.api_token) {
     myHeaders.append("Authorization", `Bearer ${config.api_token}`)
     return {
-      token: config.api_token,
+      access_token: config.api_token,
     }
   }
   const query = new URLSearchParams()
