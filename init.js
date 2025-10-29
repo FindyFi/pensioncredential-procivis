@@ -14,16 +14,16 @@ const apiHeaders = {
   'Authorization': `Bearer ${authData.access_token}`,
   'Content-Type': 'application/json'
 }
-let org
-
 // let cfg = await api('GET', '/config/v1')
 // console.log('Config: ', JSON.stringify(cfg, null, 1))
 
+let org
 org = await initOrg()
 const key = await initKey()
 const did = await initDid()
-const schemas = {}
+
 // await clearSchemas()
+const schemas = {}
 schemas.credential = await initCredentialSchema()
 schemas.proof = await initProofSchema()
 
@@ -34,9 +34,9 @@ async function api(method, path, body={}) {
   const headers = apiHeaders
   const options = { method, headers }
   if (org) {
-    body.organisationId = body.organisationId || org?.at(0).id
+    body.organisationId = body.organisationId || org?.id
   }
-  if (method == 'POST') {
+  if (method == 'POST' || method == 'PATCH' || method == 'PUT') {
     options.body = JSON.stringify(body)
   }
   else {
@@ -59,12 +59,20 @@ async function api(method, path, body={}) {
   else {
     data = await resp.text()
   }
+  if (data.totalPages > body.page + 1) {
+    body.page++
+    const nextPageData = await api(method, path, body)
+    if (nextPageData && nextPageData.values) {
+      data.values = data.values.concat(nextPageData.values)
+    }
+  }
   // console.log('Response: ', JSON.stringify(data, null, 1))
   return data
 }
 
 async function initOrg() {
-  return await api('GET', '/organisation/v1')
+  const list = await api('GET', '/organisation/v1')
+  return list[0] // use the first returned
 }
 
 async function initKey() {
@@ -91,37 +99,39 @@ async function initKey() {
 }
 
 async function initDid() {
-  const list = await api('GET', '/did/v1', { name: credentialSchema.name })
+  const listParams = {
+    "didMethods[]": 'WEB',
+    name: config.issuer_url,
+    sort: 'createdDate',
+    sortDirection: 'DESC' }
+  const list = await api('GET', '/identifier/v1', listParams)
+  // const list = await api('GET', '/did/v1', { })
   const id = list?.values?.at(0)?.id // use the first returned
-  let did = {}
   if (id) {
-    did = await api('GET', `/did/v1/${id}`)
+    const identifier = await api('GET', `/identifier/v1/${id}`)
+    // console.log(JSON.stringify(identifier, null, 2))
+    return identifier?.did?.id
   }
   else {
     const body = {
-      method: 'WEB',
-      name: credentialSchema.name,
-      keys: {
-        authentication: [key],
-        assertionMethod: [key],
-        keyAgreement: [key],
-        capabilityInvocation: [key],
-        capabilityDelegation: [key]
+      name: config.issuer_url,
+      did: {
+        method: 'WEB',
+        name: config.issuer_url,
+        keys: {
+          authentication: [key],
+          assertionMethod: [key],
+          keyAgreement: [key],
+          capabilityInvocation: [key],
+          capabilityDelegation: [key]
+        },
+        params: {
+          externalHostingUrl: `https://${config.issuer_url}`
+        }
       }
     }
-    did = await api('POST', '/did/v1', body)
-  }
-  return did?.id
-}
-
-async function clearSchemas() {
-  let list = await api('GET', '/credential-schema/v1', {})
-  for (const item of list?.values || []) {
-    await api('DELETE', `/credential-schema/v1/${item.id}`)
-  }
-  list = await api('GET', '/proof-schema/v1', {})
-  for (const item of list?.values || []) {
-    await api('DELETE', `/proof-schema/v1/${item.id}`)
+    const identifier = await api('POST', '/identifier/v1', body)
+    return identifier?.did?.id
   }
 }
 
@@ -184,4 +194,15 @@ async function initProofSchema() {
     schema = await api('POST', '/proof-schema/v1', proofSchema)
   }
   return schema
+}
+
+async function clearSchemas() {
+  let list = await api('GET', '/credential-schema/v1', {})
+  for (const item of list?.values || []) {
+    await api('DELETE', `/credential-schema/v1/${item.id}`)
+  }
+  list = await api('GET', '/proof-schema/v1', {})
+  for (const item of list?.values || []) {
+    await api('DELETE', `/proof-schema/v1/${item.id}`)
+  }
 }
