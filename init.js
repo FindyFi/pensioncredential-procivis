@@ -72,7 +72,9 @@ async function api(method, path, body={}) {
 
 async function initOrg() {
   const list = await api('GET', '/organisation/v1')
-  return list[0] // use the first returned
+  const org = list?.values?.at(0) // use the first returned
+  // const patchResp = await api('PATCH', `/organisation/v1/${org.id}`, { name: config.issuer_url, organisationId: org.id })
+  return org // use the first returned
 }
 
 async function initKey() {
