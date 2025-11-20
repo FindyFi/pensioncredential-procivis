@@ -14,11 +14,13 @@ const apiHeaders = {
   'Authorization': `Bearer ${authData.access_token}`,
   'Content-Type': 'application/json'
 }
-// let cfg = await api('GET', '/config/v1')
-// console.log('Config: ', JSON.stringify(cfg, null, 1))
 
 let org
 org = await initOrg()
+
+// let cfg = await api('GET', '/config/v1')
+// console.log('Config: ', JSON.stringify(cfg, null, 1))
+
 const key = await initKey()
 const did = await initDid()
 
