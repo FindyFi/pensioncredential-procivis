@@ -9,7 +9,7 @@ async function getOffer(path) {
     credentialSchemaId: schemas.credential.id,
     issuerDid: did,
     issuerKey: key,
-    protocol: 'OPENID4VCI_DRAFT13',
+    protocol: 'OPENID4VCI_FINAL1',
     claimValues: []
   }
   schemas.credential.claims.forEach(parent => {
