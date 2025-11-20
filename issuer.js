@@ -33,7 +33,7 @@ async function getOffer(path) {
   if (cred.id) {
     const offer = await api('POST', `/credential/v1/${cred.id}/share`)
     console.log(offer)
-    return offer.url
+    return offer.url.replace(/^openid-credential-offer-final1/, 'openid-credential-offer')
   }
 }
 
