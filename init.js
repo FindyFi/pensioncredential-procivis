@@ -1,167 +1,136 @@
-import config from './config.json' with {'type': 'json'}
+
+import { Agent } from 'credential-agent-procivis'
 import credentialSchema from './credentialschema.json' with { type: "json" }
 import authData from './auth.js'
 
-// override config file with environment variables
-for (const param in config) {
-  if (process.env[param] !== undefined) {
-    config[param] = process.env[param]
-  }
+const config = {
+    "api_base": process.env.API_BASE || 'https://procivis.sandbox.findy.fi/api',
+    "api_token": process.env.API_TOKEN || '',
+    "token_endpoint": process.env.TOKEN_ENDPOINT || "https://keycloak.trial.procivis-one.com/realms/trial/protocol/openid-connect/token",
+    "client_id": process.env.CLIENT_ID || "",
+    "client_secret": process.env.CLIENT_SECRET || "",
+    "server_host": process.env.SERVER_HOST || "localhost",
+    "issuer_url": process.env.ISSUER_URL || "kela.pensiondemo.findy.fi"
 }
 
-const apiHeaders = {
-  'Accept': 'application/json',
-  'Authorization': `Bearer ${authData.access_token}`,
-  'Content-Type': 'application/json'
+const agentParams = {
+  api_base: config.api_base
 }
-
-let org
-org = await initOrg()
-
-// let cfg = await api('GET', '/config/v1')
-// console.log('Config: ', JSON.stringify(cfg, null, 1))
-
-const key = await initKey()
-const did = await initDid()
-
-// await clearSchemas()
-const schemas = {}
-schemas.credential = await initCredentialSchema()
-schemas.proof = await initProofSchema()
-
-export { config, api, key, did, schemas }
-
-async function api(method, path, body={}) {
-  let url = `${config.api_base}${path}`
-  const headers = apiHeaders
-  const options = { method, headers }
-  if (org) {
-    body.organisationId = body.organisationId || org?.id
-  }
-  if (method == 'POST' || method == 'PATCH' || method == 'PUT') {
-    options.body = JSON.stringify(body)
-  }
-  else {
-    body.page = body.page !== undefined ? body.page: 0
-    body.pageSize = body.pageSize !== undefined ? body.pageSize: 20
-    const queryParams = new URLSearchParams(body)
-    url = `${url}?${queryParams.toString()}`
-  }
-  const resp = await fetch(url, options)
-  // console.log(resp.status, method, url, headers, JSON.stringify(body, null, 1))
-  if (!resp.ok) {
-    console.error(resp.status, method, url, headers, JSON.stringify(body, null, 1))
-    console.log(await resp.text())
-    return false
-  }
-  let data
-  if (resp.headers.get('Content-Type')?.includes('application/json')) {
-    data = await resp.json()
-  }
-  else {
-    data = await resp.text()
-  }
-  if (data.totalPages > body.page + 1) {
-    body.page++
-    const nextPageData = await api(method, path, body)
-    if (nextPageData && nextPageData.values) {
-      data.values = data.values.concat(nextPageData.values)
-    }
-  }
-  // console.log('Response: ', JSON.stringify(data, null, 1))
-  return data
+const authParams = {}
+if (config.api_token) {
+  authParams.api_token = config.api_token
 }
+else if (config.client_id && config.client_secret) {
+  authParams.client_id = config.client_id
+  authParams.client_secret = config.client_secret
+  authParams.token_endpoint = config.token_endpoint
+}
+else {
+  throw new Error('No authentication method configured!')
+}
+const agent = new Agent(agentParams)
+await agent.authenticate(authParams)
+await agent.setOrganization(await initOrg())
+agent.keys = [ await initKey() ]
+agent.dids = [ await initDID(agent.keys[0]) ]
+agent.schemas.credential = await initCredentialSchema()
+agent.schemas.proof = await initVerificationSchema()
+
+export { agent }
 
 async function initOrg() {
-  const list = await api('GET', '/organisation/v1')
-  const org = list?.values?.at(0) // use the first returned
-  // const patchResp = await api('PATCH', `/organisation/v1/${org.id}`, { name: config.issuer_url, organisationId: org.id })
-  return org // use the first returned
+  const list = await agent.getOrganizations()
+  let o
+  if (list && list.values && list.values.length > 0) {
+    o = list.values.at(0)
+  }
+  else if (typeof list === typeof []) {
+    o = list.at(0)
+  }
+  if (!o) {
+    o = await agent.createOrganization({ name: config.issuer_url })
+  }
+  return o
 }
 
 async function initKey() {
-  const headers = apiHeaders
-  const list = await api('GET', '/key/v1', { name: credentialSchema.name})
-  const id = list?.values?.at(0)?.id // use the first returned
   let key = {}
+  const list = await agent.getKeys({ name: credentialSchema.name })
+  const id = list?.values?.at(0)?.id // use the first returned
   if (id) {
-    // key = await api('GET', `/key/v1/${id}`)
     key = list?.values?.at(0)
   }
   else {
-    const body = {
+    const data = {
       keyType: 'ECDSA',
       keyParams: {},
       name: credentialSchema.name,
       storageType: 'INTERNAL',
       storageParams: {}
     }
-    key = await api('POST', '/key/v1', body)
+    key = await agent.createKey(data)
     console.log('New key: ', key)
   }
   return key?.id
 }
 
-async function initDid() {
+async function initDID(key) {
   const listParams = {
     "didMethods[]": 'WEB',
     name: config.issuer_url,
     sort: 'createdDate',
-    sortDirection: 'DESC' }
-  const list = await api('GET', '/identifier/v1', listParams)
-  // const list = await api('GET', '/did/v1', { })
+    sortDirection: 'DESC'
+  }
+  const list = await agent.getDIDs(listParams)
   const id = list?.values?.at(0)?.id // use the first returned
   if (id) {
-    const identifier = await api('GET', `/identifier/v1/${id}`)
+    const identifier = await agent.getDID(id)
     // console.log(JSON.stringify(identifier, null, 2))
     return identifier?.did?.id
   }
   else {
-    const body = {
+    const data = {
       name: config.issuer_url,
-      did: {
-        method: 'WEB',
-        name: config.issuer_url,
-        keys: {
-          authentication: [key],
-          assertionMethod: [key],
-          keyAgreement: [key],
-          capabilityInvocation: [key],
-          capabilityDelegation: [key]
-        },
-        params: {
-          externalHostingUrl: `https://${config.issuer_url}`
-        }
+      method: 'WEB',
+      keys: {
+        authentication: [key],
+        assertionMethod: [key],
+        keyAgreement: [key],
+        capabilityInvocation: [key],
+        capabilityDelegation: [key]
+      },
+      params: {
+        externalHostingUrl: `https://${config.issuer_url}`
       }
     }
-    const identifier = await api('POST', '/identifier/v1', body)
+    const identifier = await agent.createDID(data)
     return identifier?.did?.id
   }
 }
 
 async function initCredentialSchema() {
-  const list = await api('GET', '/credential-schema/v1', { name: credentialSchema.name, format: credentialSchema.format })
+  const list = await agent.getCredentialSchemas({ name: credentialSchema.name, format: credentialSchema.format })
   const id = list?.values?.at(0)?.id // use the first returned
   let schema = {}
   if (id) {
-    schema = await api('GET', `/credential-schema/v1/${id}`)
+    schema = await agent.getCredentialSchema(id)
   }
   else {
-    const res = await api('POST', '/credential-schema/v1', credentialSchema)
-    schema = await api('GET', `/credential-schema/v1/${res.id}`)
+    const res = await agent.createCredentialSchema(credentialSchema)
+    schema = await agent.getCredentialSchema(res.id)
   }
   return schema
 }
 
-async function initProofSchema() {
-  const list = await api('GET', '/proof-schema/v1', { name: schemas.credential.name })
+async function initVerificationSchema() {
+  const list = await agent.getVerificationSchemas({ name: agent.schemas.credential.name })
   const pid = list?.values?.at(0)?.id // use the first returned
   let schema = {}
   if (pid) {
-    schema = await api('GET', `/proof-schema/v1/${pid}`)
+    schema = await agent.getVerificationSchema(pid)
   }
   else {
-    const cs = schemas.credential
+    const cs = agent.schemas.credential
     const proofSchema = {
       name: cs.name,
       expireDuration: 0,
@@ -195,18 +164,18 @@ async function initProofSchema() {
         })
       }
     })
-    schema = await api('POST', '/proof-schema/v1', proofSchema)
+    schema = await agent.createVerificationSchema(proofSchema)
   }
   return schema
 }
 
 async function clearSchemas() {
-  let list = await api('GET', '/credential-schema/v1', {})
+  let list = await agent.getCredentialSchemas()
   for (const item of list?.values || []) {
-    await api('DELETE', `/credential-schema/v1/${item.id}`)
+    await agent.deleteCredentialSchema(item.id)
   }
-  list = await api('GET', '/proof-schema/v1', {})
+  list = await agent.getVerificationSchemas()
   for (const item of list?.values || []) {
-    await api('DELETE', `/proof-schema/v1/${item.id}`)
+    await agent.deleteVerificationSchema(item.id)
   }
 }

@@ -1,26 +1,28 @@
 import QRCode from 'qrcode'
 import { createServer } from 'node:http'
-import { config, api, did, schemas } from './init.js'
+import { agent } from './init.js'
 
 const states = {}
 const pollingInterval = 3 // seconds
 
+const config = {
+  "verifier_port": process.env.VERIFIER_PORT || 3081,
+  "server_host": process.env.SERVER_HOST || "localhost"
+}
+
+
 async function createRequest() {
   const proofParams = {
-    proofSchemaId: schemas.proof.id,
-    verifierDid: did,
+    proofSchemaId: agent.schemas.proof.id,
+    verifierDid: agent.dids[0],
     protocol: 'OPENID4VP_FINAL1'
   }
-  const json = await api('POST', '/proof-request/v1', proofParams)
-  if (json.id) {
-    const shareParams = {
-      params: {
-        clientIdScheme: "redirect_uri"
-      }
-    }
-    const request = await api('POST', `/proof-request/v1/${json.id}/share`, shareParams)
+  const request = await agent.requestCredential(proofParams)
+
+  
+  if (request) {
     console.log(request)
-    return {id: json.id, url: request.url}
+    return {id: request.id, url: request.url}
   }
 }
 
@@ -167,7 +169,7 @@ async function showRequest(res) {
 }
 
 async function getStatus(id) {
-  const verificationStatus = await api('GET', `/proof-request/v1/${id}`)
+  const verificationStatus = await agent.getProofRequest(id)
   // console.log(statusUrl, resp.status, JSON.stringify(verificationStatus, null, 1))
   return verificationStatus
 }

@@ -1,6 +1,7 @@
 {
   "type": "module",
   "dependencies": {
+    "credential-agent-procivis": "latest",
     "qrcode": "latest"
   }
 }

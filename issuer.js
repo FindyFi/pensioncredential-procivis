@@ -1,18 +1,24 @@
 import { createServer } from 'node:http'
-import { config, api, key, did, schemas } from './init.js'
+import { agent } from './init.js'
 
 const VALIDITY_MS = 3 * 365 * 24 * 60 * 60 * 1000 // credential validity time in milliseconds
+
+const config = {
+  "issuer_port": process.env.ISSUER_PORT || 3080,
+  "server_host": process.env.SERVER_HOST || "localhost"
+}
+
 
 async function getOffer(path) {
   const { default: credential } = await import('.' + path, { with: { type: "json" } });
   const credentialParams = {
-    credentialSchemaId: schemas.credential.id,
-    issuerDid: did,
-    issuerKey: key,
+    credentialSchemaId: agent.schemas.credential.id,
+    issuerDid: agent.dids[0],
+    issuerKey: agent.keys[0],
     protocol: 'OPENID4VCI_FINAL1',
     claimValues: []
   }
-  schemas.credential.claims.forEach(parent => {
+  agent.schemas.credential.claims.forEach(parent => {
     parent.claims.forEach(child => {
       let value = credential[parent.key][child.key]
       if (value) {
@@ -28,10 +34,8 @@ async function getOffer(path) {
     })
   })
   // console.log(JSON.stringify(credentialParams, null, 2))
-  const cred = await api('POST', '/credential/v1', credentialParams)
-  console.log(cred)
-  if (cred.id) {
-    const offer = await api('POST', `/credential/v1/${cred.id}/share`)
+  const offer = await agent.issueCredential(credentialParams)
+  if (offer) {
     console.log(offer)
     return offer.url.replace(/^openid-credential-offer-final1/, 'openid-credential-offer')
   }
