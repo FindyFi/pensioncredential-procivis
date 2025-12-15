@@ -1,7 +1,6 @@
 
 import { Agent } from 'credential-agent-procivis'
 import credentialSchema from './credentialschema.json' with { type: "json" }
-import authData from './auth.js'
 
 const config = {
     "api_base": process.env.API_BASE || 'https://procivis.sandbox.findy.fi/api',
