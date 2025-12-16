@@ -4,8 +4,8 @@ import { agent } from './init.js'
 const VALIDITY_MS = 3 * 365 * 24 * 60 * 60 * 1000 // credential validity time in milliseconds
 
 const config = {
-  "issuer_port": process.env.ISSUER_PORT || 3080,
-  "server_host": process.env.SERVER_HOST || "localhost"
+  "issuer_port": process.env.PROCIVIS_ISSUER_PORT || 3080,
+  "server_host": process.env.PROCIVIS_SERVER_HOST || "localhost"
 }
 
 

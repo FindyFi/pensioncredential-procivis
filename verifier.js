@@ -6,8 +6,8 @@ const states = {}
 const pollingInterval = 3 // seconds
 
 const config = {
-  "verifier_port": process.env.VERIFIER_PORT || 3081,
-  "server_host": process.env.SERVER_HOST || "localhost"
+  "verifier_port": process.env.PROCIVIS_VERIFIER_PORT || 3081,
+  "server_host": process.env.PROCIVIS_SERVER_HOST || "localhost"
 }
 
 
