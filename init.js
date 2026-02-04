@@ -43,7 +43,7 @@ async function initOrg() {
   if (list && list.values && list.values.length > 0) {
     o = list.values.at(0)
   }
-  else if (typeof list === typeof []) {
+  else if (typeof list === typeof [] && list.values.length > 0) {
     o = list.at(0)
   }
   if (!o) {
