@@ -38,7 +38,7 @@ agent.schemas.proof = await initVerificationSchema()
 export { agent }
 
 async function initOrg() {
-  const list = await agent.getOrganizations()
+  const list = await agent.getOrganizations({ name: config.issuer_url })
   let o
   if (list && list.values && list.values.length > 0) {
     o = list.values.at(0)
