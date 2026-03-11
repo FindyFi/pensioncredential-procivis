@@ -32,6 +32,7 @@ await agent.authenticate(authParams)
 await agent.setOrganization(await initOrg())
 agent.keys = [ await initKey() ]
 agent.dids = [ await initDID(agent.keys[0]) ]
+// await clearSchemas()
 agent.schemas.credential = await initCredentialSchema()
 agent.schemas.proof = await initVerificationSchema()
 
@@ -169,11 +170,11 @@ async function initVerificationSchema() {
 }
 
 async function clearSchemas() {
-  let list = await agent.getCredentialSchemas()
+  let list = await agent.getCredentialSchemas({ name: credentialSchema.name })
   for (const item of list?.values || []) {
     await agent.deleteCredentialSchema(item.id)
   }
-  list = await agent.getVerificationSchemas()
+  list = await agent.getVerificationSchemas({ name: credentialSchema.name })
   for (const item of list?.values || []) {
     await agent.deleteVerificationSchema(item.id)
   }
