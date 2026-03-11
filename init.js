@@ -108,7 +108,7 @@ async function initDID(key) {
 }
 
 async function initCredentialSchema() {
-  const list = await agent.getCredentialSchemas({ name: credentialSchema.name, format: credentialSchema.format })
+  const list = await agent.getCredentialSchemas({ name: credentialSchema.name, sort: 'createdDate', sortDirection: 'DESC', "formats[]": credentialSchema.format })
   const id = list?.values?.at(0)?.id // use the first returned
   let schema = {}
   if (id) {
