@@ -13,7 +13,7 @@ async function getOffer(path) {
   const { default: credential } = await import('.' + path, { with: { type: "json" } });
   const credentialParams = {
     credentialSchemaId: agent.schemas.credential.id,
-    issuerDid: agent.dids[0],
+    issuer: agent.identifierIds[0],
     issuerKey: agent.keys[0],
     protocol: 'OPENID4VCI_FINAL1',
     claimValues: []

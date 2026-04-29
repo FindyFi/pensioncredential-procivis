@@ -14,8 +14,10 @@ const config = {
 async function createRequest() {
   const proofParams = {
     proofSchemaId: agent.schemas.proof.id,
-    verifierDid: agent.dids[0],
-    protocol: 'OPENID4VP_FINAL1'
+    verifier: agent.identifierIds[0],
+    protocol: 'OPENID4VP_FINAL1',
+    transport: ['HTTP'],
+    clientIdScheme: 'did'
   }
   const request = await agent.requestCredential(proofParams)
 

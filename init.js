@@ -31,7 +31,9 @@ const agent = new Agent(agentParams)
 await agent.authenticate(authParams)
 await agent.setOrganization(await initOrg())
 agent.keys = [ await initKey() ]
-agent.dids = [ await initDID(agent.keys[0]) ]
+const issuerIdentifier = await initDID(agent.keys[0])
+agent.identifierIds = [ issuerIdentifier.id ]
+agent.dids = [ issuerIdentifier.did ]
 // await clearSchemas()
 agent.schemas.credential = await initCredentialSchema()
 agent.schemas.proof = await initVerificationSchema()
@@ -83,10 +85,9 @@ async function initDID(key) {
   }
   const list = await agent.getDIDs(listParams)
   const id = list?.values?.at(0)?.id // use the first returned
+  let identifier
   if (id) {
-    const identifier = await agent.getDID(id)
-    // console.log(JSON.stringify(identifier, null, 2))
-    return identifier?.did?.id
+    identifier = await agent.getDID(id)
   }
   else {
     const data = {
@@ -103,9 +104,9 @@ async function initDID(key) {
         externalHostingUrl: `https://${config.issuer_url}`
       }
     }
-    const identifier = await agent.createDID(data)
-    return identifier?.did?.id
+    identifier = await agent.createDID(data)
   }
+  return { id: identifier?.id, did: identifier?.did?.id }
 }
 
 async function initCredentialSchema() {
