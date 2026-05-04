@@ -9,7 +9,7 @@ const config = {
     "client_id": process.env.PROCIVIS_CLIENT_ID || "",
     "client_secret": process.env.PROCIVIS_CLIENT_SECRET || "",
     "server_host": process.env.PROCIVIS_SERVER_HOST || "localhost",
-    "issuer_url": process.env.PROCIVIS_ISSUER_URL || "procivis.development.findy.fi"
+    "issuer_url": process.env.PROCIVIS_ISSUER_URL || ""
 }
 
 const agentParams = {
@@ -41,18 +41,28 @@ agent.schemas.proof = await initVerificationSchema()
 export { agent }
 
 async function initOrg() {
-  const list = await agent.getOrganizations({ name: config.issuer_url })
-  let o
-  if (list && list.values && list.values.length > 0) {
-    o = list.values.at(0)
+  const list = await agent.getOrganizations({})
+  const orgs = list?.values || (Array.isArray(list) ? list : [])
+
+  if (orgs.length === 0) {
+    const created = await agent.createOrganization({})
+    console.log('Created organisation:', created.id)
+    return { id: created.id }
   }
-  else if (typeof list === typeof [] && list.values.length > 0) {
-    o = list.at(0)
+
+  for (const org of orgs) {
+    const dids = await agent.getDIDs({
+      organisationId: org.id,
+      "didMethods[]": 'WEB',
+      name: config.issuer_url
+    })
+    if (dids?.values?.length > 0) {
+      console.log(`Found organisation ${org.id} with DID "${config.issuer_url}"`)
+      return org
+    }
   }
-  if (!o) {
-    o = await agent.createOrganization({ name: config.issuer_url })
-  }
-  return o
+
+  throw new Error(`Found ${orgs.length} organisation(s), but none contain a DID named "${config.issuer_url}". Create the DID in one of these organisations: ${orgs.map(o => o.id).join(', ')}`)
 }
 
 async function initKey() {
