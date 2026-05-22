@@ -25,6 +25,9 @@ async function getOffer(path) {
         if (child.key.match(/date/i)) {
           value = new Date(value).toISOString()
         }
+        if (child.key != 'effectual' && child.key != 'personal_administrative_number') {
+          return // ignore other claims in the simplified version
+        }
         credentialParams.claimValues.push({
           claimId: child.id,
           value: value,
