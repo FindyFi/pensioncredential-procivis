@@ -41,7 +41,7 @@ agent.schemas.proof = await initVerificationSchema()
 export { agent }
 
 async function initOrg() {
-  const list = await agent.getOrganizations({})
+  const list = await agent.getOrganizations({sort: 'createdDate', sortDirection: 'DESC'})
   const orgs = list?.values || (Array.isArray(list) ? list : [])
 
   if (orgs.length === 0) {
@@ -61,13 +61,13 @@ async function initOrg() {
       return org
     }
   }
+  return orgs[0]
 
-  throw new Error(`Found ${orgs.length} organisation(s), but none contain a DID named "${config.issuer_url}". Create the DID in one of these organisations: ${orgs.map(o => o.id).join(', ')}`)
 }
 
 async function initKey() {
   let key = {}
-  const list = await agent.getKeys({ name: credentialSchema.name })
+  const list = await agent.getKeys({ name: config.issuer_url, sort: 'createdDate', sortDirection: 'DESC' })
   const id = list?.values?.at(0)?.id // use the first returned
   if (id) {
     key = list?.values?.at(0)
@@ -76,7 +76,7 @@ async function initKey() {
     const data = {
       keyType: 'ECDSA',
       keyParams: {},
-      name: credentialSchema.name,
+      name: config.issuer_url,
       storageType: 'INTERNAL',
       storageParams: {}
     }
