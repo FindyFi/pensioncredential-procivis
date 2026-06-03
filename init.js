@@ -5,7 +5,7 @@ import credentialSchema from './credentialschema.json' with { type: "json" }
 const config = {
     "api_base": process.env.PROCIVIS_API_BASE || '',
     "api_token": process.env.PROCIVIS_API_TOKEN || '',
-    "token_endpoint": process.env.PROCIVIS_TOKEN_ENDPOINT || "https://keycloak.trial.procivis-one.com/realms/trial/protocol/openid-connect/token",
+    "token_endpoint": process.env.PROCIVIS_TOKEN_ENDPOINT || "",
     "client_id": process.env.PROCIVIS_CLIENT_ID || "",
     "client_secret": process.env.PROCIVIS_CLIENT_SECRET || "",
     "server_host": process.env.PROCIVIS_SERVER_HOST || "localhost",
@@ -30,8 +30,8 @@ else {
 const agent = new Agent(agentParams)
 await agent.authenticate(authParams)
 await agent.setOrganization(await initOrg())
-agent.keys = [ await initKey() ]
-const issuerIdentifier = await initDID(agent.keys[0])
+const issuerIdentifier = await initDID()
+agent.keys = [ issuerIdentifier.keyId ]
 agent.identifierIds = [ issuerIdentifier.id ]
 agent.dids = [ issuerIdentifier.did ]
 // await clearSchemas()
@@ -86,7 +86,7 @@ async function initKey() {
   return key?.id
 }
 
-async function initDID(key) {
+async function initDID() {
   const listParams = {
     "didMethods[]": 'WEB',
     name: config.issuer_url,
@@ -96,19 +96,23 @@ async function initDID(key) {
   const list = await agent.getDIDs(listParams)
   const id = list?.values?.at(0)?.id // use the first returned
   let identifier
+  let keyId
   if (id) {
     identifier = await agent.getDID(id)
+    // use the key actually bound to the identifier, not a separate name lookup
+    keyId = identifier?.did?.keys?.assertionMethod?.at(0)?.id
   }
   else {
+    keyId = await initKey()
     const data = {
       name: config.issuer_url,
       method: 'WEB',
       keys: {
-        authentication: [key],
-        assertionMethod: [key],
-        keyAgreement: [key],
-        capabilityInvocation: [key],
-        capabilityDelegation: [key]
+        authentication: [keyId],
+        assertionMethod: [keyId],
+        keyAgreement: [keyId],
+        capabilityInvocation: [keyId],
+        capabilityDelegation: [keyId]
       },
       params: {
         externalHostingUrl: `https://${config.issuer_url}`
@@ -116,7 +120,7 @@ async function initDID(key) {
     }
     identifier = await agent.createDID(data)
   }
-  return { id: identifier?.id, did: identifier?.did?.id }
+  return { id: identifier?.id, did: identifier?.did?.id, keyId }
 }
 
 async function initCredentialSchema() {
