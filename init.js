@@ -8,7 +8,7 @@ const config = {
     "token_endpoint": process.env.PROCIVIS_TOKEN_ENDPOINT || "",
     "client_id": process.env.PROCIVIS_CLIENT_ID || "",
     "client_secret": process.env.PROCIVIS_CLIENT_SECRET || "",
-    "server_host": process.env.PROCIVIS_SERVER_HOST || "localhost",
+    "server_host": process.env.PROCIVIS_SERVER_HOST || "",
     "issuer_url": process.env.PROCIVIS_ISSUER_URL || ""
 }
 
@@ -124,11 +124,13 @@ async function initDID() {
 }
 
 async function initCredentialSchema() {
-  const list = await agent.getCredentialSchemas({ name: credentialSchema.name, sort: 'createdDate', sortDirection: 'DESC', "formats[]": credentialSchema.format })
-  const id = list?.values?.at(0)?.id // use the first returned
+  // filter by name (the schemaId/formats[] filters aren't honoured on all Procivis
+  // versions), then match the exact schemaId among the results client-side
+  const list = await agent.getCredentialSchemas({ name: credentialSchema.name, sort: 'createdDate', sortDirection: 'DESC' })
+  const existing = list?.values?.find(s => s.schemaId === credentialSchema.schemaId)
   let schema = {}
-  if (id) {
-    schema = await agent.getCredentialSchema(id)
+  if (existing?.id) {
+    schema = await agent.getCredentialSchema(existing.id)
   }
   else {
     const org = await agent.getOrganization()
@@ -138,6 +140,9 @@ async function initCredentialSchema() {
     }
     console.log('Creating credential schema with organisationId:', org.id)
     const res = await agent.createCredentialSchema(data)
+    if (!res?.id) {
+      throw new Error(`Could not create credential schema "${credentialSchema.schemaId}" in organisation ${org.id}. The schemaId may already be registered under a different organisation on this Procivis instance.`)
+    }
     schema = await agent.getCredentialSchema(res.id)
   }
   return schema
