@@ -14,7 +14,7 @@ const config = {
 async function createRequest() {
   const proofParams = {
     proofSchemaId: agent.schemas.proof.id,
-    verifier: agent.identifierIds[0],
+    verifier: agent.verifier.id,
     protocol: 'OPENID4VP_FINAL1',
     transport: ['HTTP'],
     clientIdScheme: 'did'

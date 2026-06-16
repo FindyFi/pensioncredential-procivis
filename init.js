@@ -8,8 +8,9 @@ const config = {
     "token_endpoint": process.env.PROCIVIS_TOKEN_ENDPOINT || "",
     "client_id": process.env.PROCIVIS_CLIENT_ID || "",
     "client_secret": process.env.PROCIVIS_CLIENT_SECRET || "",
-    "server_host": process.env.PROCIVIS_SERVER_HOST || "",
-    "issuer_url": process.env.PROCIVIS_ISSUER_URL || ""
+    "server_host": process.env.PROCIVIS_SERVER_HOST || "localhost",
+    "issuer_url": process.env.PROCIVIS_ISSUER_URL || "",
+    "verifier_url": process.env.PROCIVIS_VERIFIER_URL || ""
 }
 
 const agentParams = {
@@ -30,10 +31,8 @@ else {
 const agent = new Agent(agentParams)
 await agent.authenticate(authParams)
 await agent.setOrganization(await initOrg())
-const issuerIdentifier = await initDID()
-agent.keys = [ issuerIdentifier.keyId ]
-agent.identifierIds = [ issuerIdentifier.id ]
-agent.dids = [ issuerIdentifier.did ]
+agent.issuer = await initDID(config.issuer_url)
+agent.verifier = await initDID(config.verifier_url)
 // await clearSchemas()
 agent.schemas.credential = await initCredentialSchema()
 agent.schemas.proof = await initVerificationSchema()
@@ -57,12 +56,11 @@ async function initOrg() {
       name: config.issuer_url
     })
     if (dids?.values?.length > 0) {
-      console.log(`Found organisation ${org.id} with DID "${config.issuer_url}"`)
+      // console.log(`Found organisation ${org.id} with DID "${config.issuer_url}"`)
       return org
     }
   }
   return orgs[0]
-
 }
 
 async function initKey() {
@@ -86,26 +84,24 @@ async function initKey() {
   return key?.id
 }
 
-async function initDID() {
+async function initDID(url) {
   const listParams = {
     "didMethods[]": 'WEB',
-    name: config.issuer_url,
+    name: url,
     sort: 'createdDate',
     sortDirection: 'DESC'
   }
   const list = await agent.getDIDs(listParams)
   const id = list?.values?.at(0)?.id // use the first returned
-  let identifier
-  let keyId
+  let identifier, keyId
   if (id) {
     identifier = await agent.getDID(id)
-    // use the key actually bound to the identifier, not a separate name lookup
     keyId = identifier?.did?.keys?.assertionMethod?.at(0)?.id
   }
   else {
     keyId = await initKey()
     const data = {
-      name: config.issuer_url,
+      name: url,
       method: 'WEB',
       keys: {
         authentication: [keyId],
@@ -115,22 +111,29 @@ async function initDID() {
         capabilityDelegation: [keyId]
       },
       params: {
-        externalHostingUrl: `https://${config.issuer_url}`
+        externalHostingUrl: `https://${url}`
       }
     }
     identifier = await agent.createDID(data)
+    if (!identifier?.id) {
+      throw new Error(`Could not create DID "${url}".`)
+    }
   }
   return { id: identifier?.id, did: identifier?.did?.id, keyId }
 }
 
 async function initCredentialSchema() {
-  // filter by name (the schemaId/formats[] filters aren't honoured on all Procivis
-  // versions), then match the exact schemaId among the results client-side
-  const list = await agent.getCredentialSchemas({ name: credentialSchema.name, sort: 'createdDate', sortDirection: 'DESC' })
-  const existing = list?.values?.find(s => s.schemaId === credentialSchema.schemaId)
+  const searchParams = {
+    name: credentialSchema.name,
+    "formats[]": credentialSchema.formats[0].format,
+    sort: 'createdDate',
+    sortDirection: 'DESC'
+  }
+  const list = await agent.getCredentialSchemas(searchParams)
+  const id = list?.values?.at(0)?.id // use the first returned
   let schema = {}
-  if (existing?.id) {
-    schema = await agent.getCredentialSchema(existing.id)
+  if (id) {
+    schema = await agent.getCredentialSchema(id)
   }
   else {
     const org = await agent.getOrganization()
@@ -141,7 +144,7 @@ async function initCredentialSchema() {
     console.log('Creating credential schema with organisationId:', org.id)
     const res = await agent.createCredentialSchema(data)
     if (!res?.id) {
-      throw new Error(`Could not create credential schema "${credentialSchema.schemaId}" in organisation ${org.id}. The schemaId may already be registered under a different organisation on this Procivis instance.`)
+      throw new Error(`Could not create credential schema "${credentialSchema.schemaId}" in organisation ${org.id}.`)
     }
     schema = await agent.getCredentialSchema(res.id)
   }
