@@ -20,8 +20,6 @@ async function createRequest() {
     clientIdScheme: 'did'
   }
   const request = await agent.requestCredential(proofParams)
-
-  
   if (request) {
     console.log(request)
     return {id: request.id, url: request.url}
