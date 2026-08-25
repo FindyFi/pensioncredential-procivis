@@ -152,7 +152,11 @@ async function initCredentialSchema() {
 }
 
 async function initVerificationSchema() {
-  const list = await agent.getVerificationSchemas({ name: agent.schemas.credential.name })
+  const list = await agent.getVerificationSchemas({
+    name: agent.schemas.credential.name,
+    sort: 'createdDate',
+    sortDirection: 'DESC'
+ })
   const pid = list?.values?.at(0)?.id // use the first returned
   let schema = {}
   if (pid) {
