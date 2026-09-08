@@ -178,7 +178,7 @@ async function initVerificationSchema() {
     cs.claims.forEach(parent => {
       if (parent.key == 'Pension') {
         parent.claims.forEach(child => {
-          if (['startDate', 'typeCode', 'typeName'].includes(child.key)) {
+          if (['effectual'].includes(child.key)) {
             proofSchema.proofInputSchemas[0].claimSchemas.push({
               id: child.id,
               required: true
