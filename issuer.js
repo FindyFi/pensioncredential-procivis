@@ -21,8 +21,7 @@ async function getOffer(path) {
   agent.schemas.credential.claims.forEach(claim => {
     let value = credential[claim.key]
     if (claim.key.match(/Muodostettu/i)) {
-      // value = new Date().toLocaleDateString("fi-FI")
-      value = new Date().toISOString()
+      value = new Date().toLocaleDateString("fi-FI")
     }
     credentialParams.claimValues.push({
       claimId: claim.id,
