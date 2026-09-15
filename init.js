@@ -190,9 +190,11 @@ async function clearSchemas() {
   let list = await agent.getCredentialSchemas({ name: credentialSchema.name })
   for (const item of list?.values || []) {
     await agent.deleteCredentialSchema(item.id)
+    console.log(`Deleted credential schema with id: ${item.id}`)
   }
   list = await agent.getVerificationSchemas({ name: credentialSchema.name })
   for (const item of list?.values || []) {
     await agent.deleteVerificationSchema(item.id)
+    console.log(`Deleted verification schema with id: ${item.id}`)
   }
 }
