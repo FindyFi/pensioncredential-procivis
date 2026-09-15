@@ -175,27 +175,11 @@ async function initVerificationSchema() {
        }
       ]
     }
-    cs.claims.forEach(parent => {
-      if (parent.key == 'Pension') {
-        parent.claims.forEach(child => {
-          if (['effectual'].includes(child.key)) {
-            proofSchema.proofInputSchemas[0].claimSchemas.push({
-              id: child.id,
-              required: true
-            })
-          }
-        })
-      }
-      if (parent.key == 'Person') {
-        parent.claims.forEach(child => {
-          if (['personal_administrative_number'].includes(child.key)) {
-            proofSchema.proofInputSchemas[0].claimSchemas.push({
-              id: child.id,
-              required: true
-            })
-          }
-        })
-      }
+    cs.claims.forEach(claim => {
+      proofSchema.proofInputSchemas[0].claimSchemas.push({
+        id: claim.id,
+        required: true
+      })
     })
     schema = await agent.createVerificationSchema(proofSchema)
   }
