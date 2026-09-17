@@ -140,17 +140,24 @@ async function showRequest(res) {
      if (status.state == 'ACCEPTED') {
       clearInterval(timer)
       console.log(status)
-      const claims = status.proofInputs?.at(0)?.claims
+      const claims = status.proofInputs?.at(0)?.claims || []
       const attributes = {}
-      for (const parent of claims) {
-        for (const child of parent.value) {
-          attributes[child.path] = child.value
+      const collect = (list) => {
+        for (const claim of list) {
+          // a claim value is either a nested array of claims or a leaf value
+          if (Array.isArray(claim.value)) collect(claim.value)
+          else attributes[claim.path] = claim.value
         }
       }
+      collect(claims)
+      // booleans are shown in the page language, like the static labels
+      const yesNo = (v) => (v === true || v === 'true')
+        ? '<span lang="fi">Kyllä</span><span lang="en">Yes</span>'
+        : '<span lang="fi">Ei</span><span lang="en">No</span>'
       const html = \`<p><span lang="fi">Todisteen tarkistuksen tila</span><span lang="en">Proof request state</span>: <strong>\${status.state}</strong></p>
       <table>
       <tr><th><span lang="fi">Hetu</span><span lang="en">SSN</span></th><td>\${attributes['Hetu']}</td></tr>
-      <tr><th><span lang="fi">Eläke voimassa</span><span lang="en">Pension effectual</span></th><td>\${attributes['Voimassa']}</td></tr>
+      <tr><th><span lang="fi">Eläke voimassa</span><span lang="en">Pension effectual</span></th><td>\${yesNo(attributes['Voimassa'])}</td></tr>
       <tr><th><span lang="fi">Todiste myönnetty</span><span lang="en">Credential issued</span></th><td>\${attributes['Muodostettu']}</td></tr>
       </table>
       <pre>\${JSON.stringify(status, null, 2)}</pre>\`
