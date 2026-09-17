@@ -175,27 +175,11 @@ async function initVerificationSchema() {
        }
       ]
     }
-    cs.claims.forEach(parent => {
-      if (parent.key == 'Pension') {
-        parent.claims.forEach(child => {
-          if (['effectual'].includes(child.key)) {
-            proofSchema.proofInputSchemas[0].claimSchemas.push({
-              id: child.id,
-              required: true
-            })
-          }
-        })
-      }
-      if (parent.key == 'Person') {
-        parent.claims.forEach(child => {
-          if (['personal_administrative_number'].includes(child.key)) {
-            proofSchema.proofInputSchemas[0].claimSchemas.push({
-              id: child.id,
-              required: true
-            })
-          }
-        })
-      }
+    cs.claims.forEach(claim => {
+      proofSchema.proofInputSchemas[0].claimSchemas.push({
+        id: claim.id,
+        required: true
+      })
     })
     schema = await agent.createVerificationSchema(proofSchema)
   }
@@ -206,9 +190,11 @@ async function clearSchemas() {
   let list = await agent.getCredentialSchemas({ name: credentialSchema.name })
   for (const item of list?.values || []) {
     await agent.deleteCredentialSchema(item.id)
+    console.log(`Deleted credential schema with id: ${item.id}`)
   }
   list = await agent.getVerificationSchemas({ name: credentialSchema.name })
   for (const item of list?.values || []) {
     await agent.deleteVerificationSchema(item.id)
+    console.log(`Deleted verification schema with id: ${item.id}`)
   }
 }

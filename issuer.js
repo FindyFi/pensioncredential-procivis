@@ -18,22 +18,15 @@ async function getOffer(path) {
     protocol: 'OPENID4VCI_FINAL1',
     claimValues: []
   }
-  agent.schemas.credential.claims.forEach(parent => {
-    parent.claims.forEach(child => {
-      let value = credential[parent.key][child.key]
-      if (value) {
-        if (child.key.match(/date/i)) {
-          value = new Date(value).toISOString()
-        }
-        if (child.key != 'effectual' && child.key != 'personal_administrative_number') {
-          return // ignore other claims in the simplified version
-        }
-        credentialParams.claimValues.push({
-          claimId: child.id,
-          value: value,
-          path: `${parent.key}/${child.key}`
-        })
-      }
+  agent.schemas.credential.claims.forEach(claim => {
+    let value = credential[claim.key]
+    if (claim.key.match(/Muodostettu/i)) {
+      value = new Date().toLocaleDateString("fi-FI")
+    }
+    credentialParams.claimValues.push({
+      claimId: claim.id,
+      value: value,
+      path: `${claim.key}`
     })
   })
   // console.log(JSON.stringify(credentialParams, null, 2))
