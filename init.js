@@ -146,7 +146,7 @@ async function initCredentialSchema() {
     console.log('Creating credential schema with organisationId:', org.id)
     const res = await agent.createCredentialSchema(data)
     if (!res?.id) {
-      throw new Error(`Could not create credential schema "${credentialSchema.schemaId}" in organisation ${org.id}.`)
+      throw new Error(`Could not create credential schema "${credentialSchema.name}" in organisation ${org.id}.`)
     }
     schema = await agent.getCredentialSchema(res.id)
   }
