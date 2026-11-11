@@ -120,6 +120,9 @@ async function initDID(url) {
     }
     // POST /identifier/v1 returns only { id }; fetch the identifier to get the DID value
     identifier = await agent.getDID(created.id)
+    if (!identifier?.id) {
+      throw new Error(`Could not read the created DID "${url}" (${created.id}).`)
+    }
   }
   return { id: identifier?.id, did: identifier?.did?.did, keyId }
 }
