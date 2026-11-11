@@ -33,7 +33,7 @@ async function getOffer(path) {
   const offer = await agent.issueCredential(credentialParams)
   if (offer) {
     console.log(offer)
-    return offer.url.replace(/^openid-credential-offer-final1/, 'openid-credential-offer')
+    return offer.url
   }
 }
 
