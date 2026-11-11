@@ -114,12 +114,14 @@ async function initDID(url) {
         externalHostingUrl: `https://${url}`
       }
     }
-    identifier = await agent.createDID(data)
-    if (!identifier?.id) {
+    const created = await agent.createDID(data)
+    if (!created?.id) {
       throw new Error(`Could not create DID "${url}".`)
     }
+    // POST /identifier/v1 returns only { id }; fetch the identifier to get the DID value
+    identifier = await agent.getDID(created.id)
   }
-  return { id: identifier?.id, did: identifier?.did?.id, keyId }
+  return { id: identifier?.id, did: identifier?.did?.did, keyId }
 }
 
 async function initCredentialSchema() {
