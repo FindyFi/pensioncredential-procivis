@@ -19,11 +19,10 @@ async function createRequest() {
     transport: ['HTTP'],
     clientIdScheme: 'did'
   }
+  // throws if the proof request cannot be created or shared
   const request = await agent.requestCredential(proofParams)
-  if (request) {
-    console.log(request)
-    return {id: request.id, url: request.url}
-  }
+  console.log(request)
+  return {id: request.id, url: request.url}
 }
 
 async function showRequest(res) {
