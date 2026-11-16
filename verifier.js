@@ -174,12 +174,6 @@ async function showRequest(res) {
 </html>`)
 }
 
-async function getStatus(id) {
-  const verificationStatus = await agent.getProofRequest(id)
-  // console.log(statusUrl, resp.status, JSON.stringify(verificationStatus, null, 1))
-  return verificationStatus
-}
-
 const handleRequests = async function (req, res) {
   const fullUrl = new URL('http://example.com' + req.url)
   let id = fullUrl.searchParams.get('id')
@@ -191,7 +185,7 @@ const handleRequests = async function (req, res) {
       res.end(config.verifier_entity_configuration)
       return false
     case '/status':
-      const status = await getStatus(id)
+      const status = await agent.getStatus(id)
       res.setHeader("Content-Type", "application/json")
       res.writeHead(200)
       res.end(JSON.stringify(status))
