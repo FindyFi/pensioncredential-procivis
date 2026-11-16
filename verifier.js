@@ -19,11 +19,10 @@ async function createRequest() {
     transport: ['HTTP'],
     clientIdScheme: 'did'
   }
+  // throws if the proof request cannot be created or shared
   const request = await agent.requestCredential(proofParams)
-  if (request) {
-    console.log(request)
-    return {id: request.id, url: request.url}
-  }
+  console.log(request)
+  return {id: request.id, url: request.url}
 }
 
 async function showRequest(res) {
@@ -175,12 +174,6 @@ async function showRequest(res) {
 </html>`)
 }
 
-async function getStatus(id) {
-  const verificationStatus = await agent.getProofRequest(id)
-  // console.log(statusUrl, resp.status, JSON.stringify(verificationStatus, null, 1))
-  return verificationStatus
-}
-
 const handleRequests = async function (req, res) {
   const fullUrl = new URL('http://example.com' + req.url)
   let id = fullUrl.searchParams.get('id')
@@ -192,7 +185,7 @@ const handleRequests = async function (req, res) {
       res.end(config.verifier_entity_configuration)
       return false
     case '/status':
-      const status = await getStatus(id)
+      const status = await agent.getStatus(id)
       res.setHeader("Content-Type", "application/json")
       res.writeHead(200)
       res.end(JSON.stringify(status))
@@ -208,7 +201,17 @@ const handleRequests = async function (req, res) {
   return false
 }
 
-const server = createServer(handleRequests)
+// the agent throws when a request fails or times out; answer 500 instead of crashing the server
+const server = createServer((req, res) => {
+  handleRequests(req, res).catch(e => {
+    console.warn(e)
+    if (!res.headersSent) {
+      res.setHeader("Content-Type", "text/plain")
+      res.writeHead(500)
+    }
+    res.end(`Could not handle ${req.url}`)
+  })
+})
 server.listen(config.verifier_port, config.server_host, () => {
     console.log(`Server is running on http://${config.server_host}:${config.verifier_port}`)
 })

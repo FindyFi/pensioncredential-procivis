@@ -13,23 +13,14 @@ const config = {
     "verifier_url": process.env.PROCIVIS_VERIFIER_URL || ""
 }
 
-const agentParams = {
-  api_base: config.api_base
-}
-const authParams = {}
-if (config.api_token) {
-  authParams.api_token = config.api_token
-}
-else if (config.client_id && config.client_secret) {
-  authParams.client_id = config.client_id
-  authParams.client_secret = config.client_secret
-  authParams.token_endpoint = config.token_endpoint
-}
-else {
-  throw new Error('No authentication method configured!')
-}
-const agent = new Agent(agentParams)
-await agent.authenticate(authParams)
+const agent = new Agent({ api_base: config.api_base })
+// uses api_token if set, otherwise the client credentials; throws if neither is complete
+await agent.authenticate({
+  api_token: config.api_token,
+  client_id: config.client_id,
+  client_secret: config.client_secret,
+  token_endpoint: config.token_endpoint
+})
 await agent.setOrganization(await initOrg())
 agent.issuer = await initDID(config.issuer_url)
 agent.verifier = await initDID(config.verifier_url)
@@ -141,15 +132,11 @@ async function initCredentialSchema() {
     schema = await agent.getCredentialSchema(id)
   }
   else {
-    const org = await agent.getOrganization()
-    const data = {
-      ...credentialSchema,
-      organisationId: org.id
-    }
-    console.log('Creating credential schema with organisationId:', org.id)
-    const res = await agent.createCredentialSchema(data)
+    // the agent adds the organisationId set with setOrganization()
+    console.log('Creating credential schema in organisation', agent.org.id)
+    const res = await agent.createCredentialSchema(credentialSchema)
     if (!res?.id) {
-      throw new Error(`Could not create credential schema "${credentialSchema.name}" in organisation ${org.id}.`)
+      throw new Error(`Could not create credential schema "${credentialSchema.name}" in organisation ${agent.org.id}.`)
     }
     schema = await agent.getCredentialSchema(res.id)
   }
