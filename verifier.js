@@ -201,7 +201,17 @@ const handleRequests = async function (req, res) {
   return false
 }
 
-const server = createServer(handleRequests)
+// the agent throws when a request fails or times out; answer 500 instead of crashing the server
+const server = createServer((req, res) => {
+  handleRequests(req, res).catch(e => {
+    console.warn(e)
+    if (!res.headersSent) {
+      res.setHeader("Content-Type", "text/plain")
+      res.writeHead(500)
+    }
+    res.end(`Could not handle ${req.url}`)
+  })
+})
 server.listen(config.verifier_port, config.server_host, () => {
     console.log(`Server is running on http://${config.server_host}:${config.verifier_port}`)
 })
